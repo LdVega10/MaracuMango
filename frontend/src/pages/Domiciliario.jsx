@@ -112,6 +112,19 @@ export default function Domiciliario() {
                 )}
               </div>
 
+              {/* Método de pago */}
+              {p.metodo_pago && (
+                <div className="dom-section">
+                  <div className="dom-section-label">💳 Método de pago</div>
+                  <div className="dom-section-value">{
+                    p.metodo_pago === 'nequi' ? '📱 Nequi' :
+                    p.metodo_pago === 'bancolombia' ? '🏦 Bancolombia' :
+                    p.metodo_pago === 'daviplata' ? '💜 Daviplata' :
+                    p.metodo_pago === 'efectivo' ? '💵 Efectivo' : p.metodo_pago
+                  }</div>
+                </div>
+              )}
+
               {/* Productos */}
               <div className="dom-section">
                 <div className="dom-section-label">🥤 Productos</div>

@@ -45,7 +45,7 @@ router.post('/', async (req, res) => {
   try {
     await client.query('BEGIN');
     const { cliente_id, sede_id = 1, canal = 'chatbot',
-            productos, tipo_entrega = 'punto', direccion_entrega, usuario_id } = req.body;
+            productos, tipo_entrega = 'punto', direccion_entrega, usuario_id, metodo_pago } = req.body;
 
     if (!productos?.length)
       return res.status(400).json({ error: true, message: 'Productos requeridos' });
@@ -62,9 +62,9 @@ router.post('/', async (req, res) => {
 
     // Crear pedido
     const { rows: [pedido] } = await client.query(`
-      INSERT INTO pedidos (cliente_id, sede_id, usuario_id, canal, total, tipo_entrega, direccion_entrega)
-      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
-    `, [cliente_id||null, sede_id, usuario_id||null, canal, total, tipo_entrega, direccion_entrega||null]);
+      INSERT INTO pedidos (cliente_id, sede_id, usuario_id, canal, total, tipo_entrega, direccion_entrega, metodo_pago)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
+    `, [cliente_id||null, sede_id, usuario_id||null, canal, total, tipo_entrega, direccion_entrega||null, metodo_pago||'transferencia']);
 
     // Insertar detalles + descontar inventario + actualizar preferencias
     for (const item of productosConInfo) {

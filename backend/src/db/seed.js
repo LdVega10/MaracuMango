@@ -22,7 +22,8 @@ async function seed() {
       INSERT INTO usuarios (nombre, email, password_hash, rol, sede_id) VALUES
         ('Administradora', 'admin@maracumango.com', $1, 'admin',   1),
         ('Mesera Sede 1',  'mesera1@maracumango.com', $1, 'mesera', 1),
-        ('Cocinero Sede 1','cocina1@maracumango.com', $1, 'cocinero', 1)
+        ('Cocinero Sede 1','cocina1@maracumango.com', $1, 'cocinero', 1),
+        ('Domiciliario 1', 'domicilio1@maracumango.com', $1, 'domiciliario', 1)
       ON CONFLICT (email) DO NOTHING;
     `, [hash]);
 
@@ -56,7 +57,9 @@ async function seed() {
     console.log('');
     console.log('👤 Credenciales de acceso:');
     console.log('   Admin:   admin@maracumango.com  / maracumango2025');
-    console.log('   Mesera:  mesera1@maracumango.com / maracumango2025');
+    console.log('   Mesera:       mesera1@maracumango.com / maracumango2025');
+    console.log('   Cocinero:     cocina1@maracumango.com / maracumango2025');
+    console.log('   Domiciliario: domicilio1@maracumango.com / maracumango2025');
   } catch (err) {
     console.error('❌ Error en seed:', err.message);
     throw err;

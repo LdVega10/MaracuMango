@@ -6,9 +6,17 @@ const STEPS = {
   PEDIR_TELEFONO:  'PEDIR_TELEFONO',
   MOSTRAR_MENU:    'MOSTRAR_MENU',
   TIPO_ENTREGA:    'TIPO_ENTREGA',
+  PEDIR_PAGO:      'PEDIR_PAGO',
   PEDIR_DIRECCION: 'PEDIR_DIRECCION',
   PEDIDO_OK:       'PEDIDO_OK',
 };
+
+const METODOS_PAGO = [
+  { id:'nequi',       label:'📱 Nequi'       },
+  { id:'bancolombia', label:'🏦 Bancolombia' },
+  { id:'daviplata',   label:'💜 Daviplata'   },
+  { id:'efectivo',    label:'💵 Efectivo'    },
+];
 
 function calcularTiempo(carrito, tipo) {
   const totalItems = carrito.reduce((s, i) => s + i.cantidad, 0);
@@ -25,11 +33,14 @@ export default function Chatbot({ sedeId = 1 }) {
   const [productos, setProductos]             = useState([]);
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [carrito, setCarrito]                 = useState([]);
-  const [carritoFinal, setCarritoFinal]       = useState([]); // carrito congelado al confirmar
+  const [carritoFinal, setCarritoFinal]       = useState([]);
+  const [metodoPago, setMetodoPago]           = useState('');
+  const [tipoEntregaFinal, setTipoEntregaFinal] = useState('punto');
   const [loading, setLoading]                 = useState(false);
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
   useEffect(() => {
     addBot('¡Hola! 👋 Bienvenido a **Maracumango** Santa Marta 🥤\n¿Cuál es tu número de celular para identificarte?');
   }, []);
@@ -80,6 +91,7 @@ export default function Chatbot({ sedeId = 1 }) {
                 : [...c, {...prod, cantidad:1}];
     });
   }
+
   function quitar(id) {
     setCarrito(c => {
       const ex = c.find(i => i.id===id);
@@ -92,30 +104,36 @@ export default function Chatbot({ sedeId = 1 }) {
 
   function confirmarPedido() {
     if (!carrito.length) { addBot('Tu carrito está vacío. ¡Elige algo! 🛒'); return; }
-    setCarritoFinal([...carrito]); // congelar carrito
+    setCarritoFinal([...carrito]);
     addBot('¿Cómo prefieres recibir tu pedido?');
     setStep(STEPS.TIPO_ENTREGA);
   }
 
   function seleccionarEntrega(tipo) {
-    const cf = carritoFinal.length ? carritoFinal : carrito;
+    setTipoEntregaFinal(tipo);
+    const cf = carrito.length ? carrito : carritoFinal;
     const resumen = cf.map(i => `  · ${i.cantidad}× ${i.nombre}  $${(i.precio*i.cantidad).toLocaleString()}`).join('\n');
     const totalFinal = cf.reduce((s,i) => s + i.precio*i.cantidad, 0);
     const { prepMin, entregaMin, total: totalMin } = calcularTiempo(cf, tipo);
 
-    if (tipo === 'domicilio') {
-      addBot(
-        `🛒 Resumen de tu pedido:\n${resumen}\n💰 Total: $${totalFinal.toLocaleString()}\n\n` +
-        `⏱️ Tiempo estimado:\n  · Preparación: ~${prepMin} min\n  · Entrega a domicilio: ~${entregaMin} min\n  · Total: ~${totalMin} min\n\n` +
-        `📍 Escribe tu dirección de entrega:`
-      );
+    addBot(
+      `🛒 Resumen de tu pedido:\n${resumen}\n💰 Total: $${totalFinal.toLocaleString()}\n\n` +
+      (tipo === 'domicilio'
+        ? `⏱️ Tiempo estimado:\n  · Preparación: ~${prepMin} min\n  · Entrega: ~${entregaMin} min\n  · Total: ~${totalMin} min\n\n`
+        : `⏱️ Tiempo estimado de preparación: ~${prepMin} min\n\n`) +
+      `💳 ¿Cómo vas a pagar?`
+    );
+    setStep(STEPS.PEDIR_PAGO);
+  }
+
+  function seleccionarPago(metodo) {
+    setMetodoPago(metodo);
+    const label = METODOS_PAGO.find(m => m.id === metodo)?.label || metodo;
+    addUser(label);
+    if (tipoEntregaFinal === 'domicilio') {
+      addBot('📍 ¿Cuál es tu dirección de entrega?\n(Ej: Calle 15 #8-32, Barrio El Prado)');
       setStep(STEPS.PEDIR_DIRECCION);
     } else {
-      addBot(
-        `🛒 Resumen de tu pedido:\n${resumen}\n💰 Total: $${totalFinal.toLocaleString()}\n\n` +
-        `⏱️ Tiempo estimado de preparación: ~${prepMin} min\n\n` +
-        `🥤 Pasa a recogerlo en el punto cuando esté listo.`
-      );
       enviarPedido('punto', '');
     }
   }
@@ -123,6 +141,7 @@ export default function Chatbot({ sedeId = 1 }) {
   async function enviarPedido(tipo, dir) {
     setLoading(true);
     const cf = carritoFinal.length ? carritoFinal : carrito;
+    const pagoLabel = METODOS_PAGO.find(m => m.id === metodoPago)?.label || metodoPago;
     try {
       const { data } = await pedidosApi.crear({
         cliente_id:        cliente?.id,
@@ -131,11 +150,21 @@ export default function Chatbot({ sedeId = 1 }) {
         tipo_entrega:      tipo,
         direccion_entrega: tipo === 'domicilio' ? dir : null,
         productos:         cf.map(i => ({ producto_id: i.id, cantidad: i.cantidad })),
+        metodo_pago:       metodoPago || 'efectivo',
       });
       if (tipo === 'domicilio') {
-        addBot(`✅ ¡Pedido #${String(data.id).padStart(3,'0')} confirmado!\n📍 Dirección: ${dir}\n🛵 Te avisamos cuando salga el domicilio.`);
+        addBot(
+          `✅ ¡Pedido #${String(data.id).padStart(3,'0')} confirmado!\n` +
+          `📍 Dirección: ${dir}\n` +
+          `💳 Pago: ${pagoLabel}\n` +
+          `🛵 Te avisamos cuando salga el domicilio.`
+        );
       } else {
-        addBot(`✅ ¡Pedido #${String(data.id).padStart(3,'0')} confirmado! 🥤`);
+        addBot(
+          `✅ ¡Pedido #${String(data.id).padStart(3,'0')} confirmado! 🥤\n` +
+          `💳 Pago: ${pagoLabel}\n` +
+          `⏳ Pasa a recogerlo cuando esté listo.`
+        );
       }
       setCarrito([]);
       setCarritoFinal([]);
@@ -148,6 +177,7 @@ export default function Chatbot({ sedeId = 1 }) {
 
   const showMenu  = step === STEPS.MOSTRAR_MENU;
   const showTipo  = step === STEPS.TIPO_ENTREGA;
+  const showPago  = step === STEPS.PEDIR_PAGO;
   const showInput = step === STEPS.PEDIR_TELEFONO || step === STEPS.PEDIR_DIRECCION;
 
   return (
@@ -172,7 +202,7 @@ export default function Chatbot({ sedeId = 1 }) {
           </div>
         ))}
 
-        {/* Menú: solo visible mientras elige productos */}
+        {/* Menú */}
         {showMenu && (
           <div className="menu-section">
             {recomendaciones.length > 0 && (
@@ -203,7 +233,7 @@ export default function Chatbot({ sedeId = 1 }) {
           </div>
         )}
 
-        {/* Botones tipo entrega: solo en ese paso */}
+        {/* Tipo entrega */}
         {showTipo && (
           <div className="entrega-options">
             <button className="btn-entrega" onClick={()=>seleccionarEntrega('punto')}>
@@ -212,6 +242,17 @@ export default function Chatbot({ sedeId = 1 }) {
             <button className="btn-entrega secondary" onClick={()=>seleccionarEntrega('domicilio')}>
               🛵 Domicilio
             </button>
+          </div>
+        )}
+
+        {/* Método de pago */}
+        {showPago && (
+          <div className="entrega-options">
+            {METODOS_PAGO.map(m => (
+              <button key={m.id} className="btn-entrega" onClick={()=>seleccionarPago(m.id)}>
+                {m.label}
+              </button>
+            ))}
           </div>
         )}
 

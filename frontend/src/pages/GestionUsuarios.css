@@ -1,0 +1,22 @@
+.gu-container { min-height:100vh; background:var(--off-white); padding:32px; }
+
+.gu-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+.gu-header h1 { font-size:22px; font-weight:700; }
+.gu-header p  { font-size:13px; color:var(--gray); margin-top:4px; }
+
+.gu-btn-crear {
+  padding:10px 20px; background:var(--green); color:white;
+  border-radius:10px; font-size:14px; font-weight:600;
+  border:none; cursor:pointer; font-family:inherit;
+}
+.gu-exito { background:#DCFCE7; color:#166534; padding:12px 20px; border-radius:10px; font-weight:600; font-size:14px; margin-bottom:16px; }
+
+.gu-table { background:white; border-radius:14px; overflow:hidden; }
+.gu-thead { display:grid; grid-template-columns:1.5fr 2fr 1fr 1fr 1fr; padding:12px 20px; background:var(--off-white); font-size:12px; font-weight:700; color:var(--gray); text-transform:uppercase; letter-spacing:.05em; }
+.gu-row   { display:grid; grid-template-columns:1.5fr 2fr 1fr 1fr 1fr; padding:14px 20px; border-top:1px solid var(--gray-light); align-items:center; font-size:14px; }
+.gu-nombre{ font-weight:600; }
+.gu-email { color:var(--gray); font-size:13px; }
+.gu-rol   { padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700; text-align:center; width:fit-content; text-transform:capitalize; }
+.gu-sede  { color:var(--gray); font-size:13px; }
+.gu-btn-del { padding:6px 12px; background:#FEE2E2; color:#991B1B; border-radius:8px; font-size:12px; font-weight:600; border:none; cursor:pointer; font-family:inherit; }
+.gu-empty { padding:40px; text-align:center; color:var(--gray); }

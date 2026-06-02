@@ -1,54 +1,121 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import Chatbot      from './components/Chatbot';
-import Cocina       from './pages/Cocina';
-import Dashboard    from './pages/Dashboard';
-import POS          from './pages/POS';
-import Domiciliario from './pages/Domiciliario';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import Login           from './pages/Login';
+import Chatbot         from './components/Chatbot';
+import Cocina          from './pages/Cocina';
+import Dashboard       from './pages/Dashboard';
+import POS             from './pages/POS';
+import Domiciliario    from './pages/Domiciliario';
+import GestionUsuarios from './pages/GestionUsuarios';
 import './index.css';
 
-function Home() {
+// Rutas permitidas por rol
+const ROL_RUTAS = {
+  admin:        ['/dashboard', '/usuarios', '/chatbot'],
+  mesera:       ['/pos'],
+  cocinero:     ['/cocina'],
+  cajera:       ['/pos'],
+  domiciliario: ['/domiciliario'],
+};
+
+function redirectByRol(rol, navigate) {
+  const rutas = {
+    admin:        '/dashboard',
+    mesera:       '/pos',
+    cocinero:     '/cocina',
+    cajera:       '/pos',
+    domiciliario: '/domiciliario',
+  };
+  navigate(rutas[rol] || '/');
+}
+
+function AppContent() {
+  const [rol, setRol]     = useState(null);
+  const [user, setUser]   = useState(null);
+  const navigate          = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const u     = localStorage.getItem('user');
+    if (token && u) {
+      const parsed = JSON.parse(u);
+      setRol(parsed.rol);
+      setUser(parsed);
+    }
+  }, []);
+
+  function handleLogin(rolRecibido) {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    setRol(rolRecibido);
+    setUser(u);
+    redirectByRol(rolRecibido, navigate);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setRol(null);
+    setUser(null);
+    navigate('/login');
+  }
+
+  if (!rol) {
+    return (
+      <Routes>
+        <Route path="/chatbot" element={<Chatbot sedeId={1} />} />
+        <Route path="*"        element={<Login onLogin={handleLogin} />} />
+      </Routes>
+    );
+  }
+
   return (
-    <div style={{ minHeight:'100vh', background:'#0F1E13', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:32, padding:24 }}>
-      <div style={{ textAlign:'center', color:'white' }}>
-        <div style={{ fontSize:64, marginBottom:8 }}>🥤</div>
-        <h1 style={{ fontSize:32, fontWeight:800, color:'#F5C518', marginBottom:4 }}>MARACUMANGO</h1>
-        <p style={{ color:'#9CA3AF', fontSize:15 }}>Santa Marta · Sistema de Gestión MVP</p>
+    <>
+      {/* Logout bottom left */}
+      <div style={{
+        position:'fixed', bottom:0, left:0, zIndex:999,
+        display:'flex', alignItems:'center', gap:10,
+        padding:'10px 16px', background:'rgba(0,0,0,.6)',
+        borderTopRightRadius:12
+      }}>
+        <span style={{color:'#D1D5DB', fontSize:12}}>{user?.nombre} · <strong style={{color:'white'}}>{rol}</strong></span>
+        <button onClick={handleLogout} style={{
+          padding:'5px 14px', background:'#DC2626', color:'white',
+          border:'none', borderRadius:8, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit'
+        }}>Salir</button>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:12, width:'100%', maxWidth:320 }}>
-        {[
-          { to:'/chatbot',      label:'🛒 Chatbot de Pedidos',       desc:'Canal web para clientes' },
-          { to:'/pos',          label:'🏪 POS Presencial',           desc:'Para la mesera' },
-          { to:'/cocina',       label:'👨‍🍳 Pantalla de Cocina',      desc:'Vista del cocinero' },
-          { to:'/domiciliario', label:'🛵 Domicilios',               desc:'Vista del domiciliario' },
-          { to:'/dashboard',    label:'📊 Dashboard Admin',           desc:'Panel de la dueña' },
-        ].map(item => (
-          <Link to={item.to} key={item.to} style={{ textDecoration:'none' }}>
-            <div style={{ background:'#1a2b1d', borderRadius:14, padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background .15s' }}>
-              <div>
-                <div style={{ color:'white', fontWeight:600, fontSize:15 }}>{item.label}</div>
-                <div style={{ color:'#9CA3AF', fontSize:12, marginTop:2 }}>{item.desc}</div>
-              </div>
-              <span style={{ color:'#38C761', fontSize:18 }}>→</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-      <p style={{ color:'#4B5563', fontSize:12 }}>Electiva II: Arquitectura Empresarial de TI · 2025</p>
-    </div>
+
+      <Routes>
+        {/* Admin */}
+        {rol === 'admin' && <>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/usuarios"  element={<GestionUsuarios />} />
+          <Route path="/chatbot"   element={<Chatbot sedeId={1} />} />
+          <Route path="*"          element={<Dashboard />} />
+        </>}
+        {/* Mesera / Cajera */}
+        {(rol === 'mesera' || rol === 'cajera') && <>
+          <Route path="/pos"  element={<POS />} />
+          <Route path="*"     element={<POS />} />
+        </>}
+        {/* Cocinero */}
+        {rol === 'cocinero' && <>
+          <Route path="/cocina" element={<Cocina />} />
+          <Route path="*"       element={<Cocina />} />
+        </>}
+        {/* Domiciliario */}
+        {rol === 'domiciliario' && <>
+          <Route path="/domiciliario" element={<Domiciliario />} />
+          <Route path="*"             element={<Domiciliario />} />
+        </>}
+      </Routes>
+    </>
   );
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/"          element={<Home />} />
-        <Route path="/chatbot"   element={<Chatbot sedeId={1} />} />
-        <Route path="/cocina"       element={<Cocina />} />
-        <Route path="/domiciliario" element={<Domiciliario />} />
-        <Route path="/dashboard"    element={<Dashboard />} />
-        <Route path="/pos"       element={<POS />} />
-      </Routes>
+      <AppContent />
     </BrowserRouter>
   );
 }

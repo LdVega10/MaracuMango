@@ -18,6 +18,7 @@ app.use('/api/recomendaciones', require('./routes/recomendaciones'));
 app.use('/api/pedidos',         require('./routes/pedidos'));
 app.use('/api/ventas',          require('./routes/ventas'));
 app.use('/api/inventario',      require('./routes/inventario'));
+app.use('/api/usuarios',         require('./routes/usuarios'));
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

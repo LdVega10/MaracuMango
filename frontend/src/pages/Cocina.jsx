@@ -79,6 +79,14 @@ export default function Cocina() {
               {p.cliente_nombre && (
                 <div className="pedido-cliente">👤 {p.cliente_nombre}</div>
               )}
+              {p.metodo_pago && (
+                <div className="pedido-pago">💳 {
+                  p.metodo_pago === 'nequi' ? '📱 Nequi' :
+                  p.metodo_pago === 'bancolombia' ? '🏦 Bancolombia' :
+                  p.metodo_pago === 'daviplata' ? '💜 Daviplata' :
+                  p.metodo_pago === 'efectivo' ? '💵 Efectivo' : p.metodo_pago
+                }</div>
+              )}
               <div className="pedido-items">
                 {(p.items || []).map((item, i) => (
                   <div className="pedido-item" key={i}>

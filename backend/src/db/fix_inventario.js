@@ -1,10 +1,11 @@
-const pool = require('./connection');
 
+const pool = require('./connection');
+ 
 async function fix() {
   const client = await pool.connect();
   try {
     console.log('🔧 Corrigiendo tabla inventario...');
-
+ 
     // 1. Eliminar duplicados (conservar el de mayor cantidad por sede+insumo)
     await client.query(`
       DELETE FROM inventario a
@@ -13,7 +14,7 @@ async function fix() {
         AND a.sede_id = b.sede_id
         AND a.insumo  = b.insumo;
     `);
-
+ 
     // 2. Agregar restricción única si no existe
     await client.query(`
       DO $$
@@ -27,7 +28,7 @@ async function fix() {
         END IF;
       END$$;
     `);
-
+ 
     console.log('✅ Duplicados eliminados y restricción única agregada');
   } catch (err) {
     console.error('❌ Error:', err.message);
@@ -36,5 +37,5 @@ async function fix() {
     await pool.end();
   }
 }
-
+ 
 fix();
